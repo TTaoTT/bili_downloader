@@ -1,0 +1,12 @@
+# 每行一个 B站链接，支持以下类型（合集/多P 自动全部下载，无需逐个输入）：
+#
+#  - 单视频:          https://www.bilibili.com/video/BVxxxx
+#  - 多P视频(分P):    同上，自动下载所有分P
+#  - 合集:            https://space.bilibili.com/UID/channel/collection/detail?sid=xxx
+#  - 用户投稿列表:     https://space.bilibili.com/UID/video
+#  - 频道/分区:       https://www.bilibili.com/v/channel/xxx
+#
+# 也支持逗号 / 空格分隔，一行多个链接。把下面示例替换为你的链接即可。
+
+# https://www.bilibili.com/video/BV1xx411c7XD
+# https://space.bilibili.com/123456/channel/collection/detail?sid=789

@@ -1,0 +1,23 @@
+# build output
+bili_downloader.exe
+__pycache__/
+*.pyc
+
+# downloaded videos
+downloads/
+下载/
+
+# local cookies (contains login credentials, do NOT commit)
+cookies.txt
+
+# tools / temp downloads
+tools/
+*.zip
+*.part
+
+# WorkBuddy project data
+.workbuddy/
+
+# OS
+.DS_Store
+Thumbs.db
