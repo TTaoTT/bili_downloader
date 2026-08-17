@@ -1,23 +1,29 @@
-# build output
-bili_downloader.exe
+# ---- Build artifacts (generated, do not commit) ----
+dist/
+build/
+*.spec
+build_log.txt
+
+# ---- Local temp / cache ----
+.pkg/
 __pycache__/
-*.pyc
+*.tmp
 
-# downloaded videos
-downloads/
-下载/
-
-# local cookies (contains login credentials, do NOT commit)
+# ---- App runtime files (user-specific, may contain cookies) ----
 cookies.txt
-
-# tools / temp downloads
-tools/
-*.zip
+downloads/
 *.part
+*.zip.part
 
-# WorkBuddy project data
-.workbuddy/
-
-# OS
+# ---- Editor / OS ----
 .DS_Store
 Thumbs.db
+
+# ---- User downloads / media (DO NOT upload videos!) ----
+下载/
+*.mp4
+*.crdownload
+*.mkv
+*.flv
+
+# NOTE: source (.py/.pyw), assets/, *.bat, *.md, requirements.txt are tracked.

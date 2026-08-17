@@ -1,5 +1,7 @@
 # B站视频下载器 (Bilibili Downloader)
 
+![Logo](assets/logo.png)
+
 基于 yt-dlp 的 B站视频下载工具，提供图形界面与命令行两种使用方式。
 
 ## 功能特性
@@ -25,6 +27,12 @@
 - install.bat   Windows 依赖安装
 - build_exe.bat 打包单文件 exe
 - requirements.txt  依赖
+
+## 图标
+应用图标（窗口标题栏 / Windows 任务栏 / exe 文件 / 系统托盘）统一位于 `assets/`：
+`icon.ico`（16–256 多尺寸）、`logo.png`（512）、`logo_64.png`（界面内显示）、`logo.svg`（矢量源）。
+主题色为 B站粉 `#FB7299`，前景为白色下载箭头，由图标生成脚本程序化绘制（需 Pillow）。
+打包时 `build_exe.bat` 通过 `--icon assets/icon.ico` 与 `--add-data assets;assets` 将图标嵌入 exe。
 
 ## 免责声明
 下载内容版权归原作者所有，请遵守 B站及当地法律法规，仅用于个人学习研究。

@@ -29,10 +29,10 @@ if errorlevel 1 (
 
 echo [1/3] Installing build dependencies ...
 py -3.11 -m pip install --upgrade pip
-py -3.11 -m pip install pyinstaller "yt-dlp>=2024.1.0"
+py -3.11 -m pip install pyinstaller "yt-dlp>=2024.1.0" pystray
 
 echo [2/3] Building single-file executable (takes ~1 min) ...
-py -3.11 -m PyInstaller --noconfirm --onefile --windowed --name bili_downloader --collect-all yt_dlp bili_gui.pyw
+py -3.11 -m PyInstaller --noconfirm --onefile --windowed --name bili_downloader --icon assets/icon.ico --add-data assets;assets --collect-all yt_dlp --collect-all pystray bili_gui.pyw
 if errorlevel 1 (
     echo [ERR] Build failed. See output above.
     pause

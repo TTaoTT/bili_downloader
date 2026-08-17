@@ -47,11 +47,28 @@ class App:
         self.prog_q = queue.Queue()
 
         self._build_ui()
+        self._set_icon()
+        self._start_tray()
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         self._refresh_status()
         self._pump()
 
     # ---------------- UI ----------------
     def _build_ui(self):
+        # 顶部标题（含 logo）
+        header = ttk.Frame(self.root)
+        header.pack(fill="x", padx=8, pady=(8, 0))
+        try:
+            logo_p = os.path.join(self._assets_dir(), "logo_64.png")
+            if os.path.isfile(logo_p):
+                self._logo_img = tk.PhotoImage(file=logo_p)
+                ttk.Label(header, image=self._logo_img).pack(side="left", padx=(0, 8))
+        except Exception:
+            pass
+        ttk.Label(header, text="B站视频下载器",
+                  font=("Microsoft YaHei", 15, "bold"),
+                  foreground="#FB7299").pack(side="left")
+
         # 状态栏
         status = ttk.Frame(self.root)
         status.pack(fill="x", padx=8, pady=(8, 0))
@@ -131,6 +148,72 @@ class App:
         self.pause_btn.pack(side="left", padx=6)
         ttk.Label(act, text="用法：粘贴/载入链接 → 开始。ffmpeg 缺失时点上方「下载 ffmpeg」；Cookie 可粘贴。",
                   foreground="#666666").pack(side="right")
+
+    # ---------------- 图标 / 任务栏 / 托盘 ----------------
+    def _assets_dir(self):
+        if getattr(sys, "frozen", False):
+            base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+        else:
+            base = HERE
+        return os.path.join(base, "assets")
+
+    def _set_icon(self):
+        ad = self._assets_dir()
+        ico = os.path.join(ad, "icon.ico")
+        png = os.path.join(ad, "logo.png")
+        try:
+            if os.path.isfile(ico):
+                self.root.wm_iconbitmap(ico)   # Windows 标题栏 + 任务栏
+                return
+        except Exception:
+            pass
+        try:
+            if os.path.isfile(png):
+                img = tk.PhotoImage(file=png)
+                self.root.wm_iconphoto(True, img)
+                self._iconphoto_img = img
+        except Exception:
+            pass
+
+    def _start_tray(self):
+        # 任务栏通知区托盘图标（可选；pystray 缺失则跳过，不影响主程序）
+        self._tray = None
+        try:
+            import pystray
+            from PIL import Image as _PILImage
+        except Exception:
+            return
+        png = os.path.join(self._assets_dir(), "logo.png")
+        if not os.path.isfile(png):
+            return
+        try:
+            tray_img = _PILImage.open(png)
+            menu = pystray.Menu(
+                pystray.MenuItem("显示窗口", self._tray_show),
+                pystray.MenuItem("退出", self._tray_quit),
+            )
+            self._tray = pystray.Icon("bili_downloader", tray_img, "B站视频下载器", menu)
+            threading.Thread(target=self._tray.run, daemon=True).start()
+        except Exception:
+            self._tray = None
+
+    def _on_close(self):
+        # 有托盘时：点 X 最小化到托盘（不退出）；无托盘则直接退出
+        if self._tray is not None:
+            self.root.withdraw()
+        else:
+            self.root.destroy()
+
+    def _tray_show(self, icon=None, item=None):
+        self.root.after(0, self.root.deiconify)
+
+    def _tray_quit(self, icon=None, item=None):
+        try:
+            if self._tray is not None:
+                self._tray.stop()
+        except Exception:
+            pass
+        self.root.after(0, self.root.destroy)
 
     def _refresh_status(self):
         self.cookie_var.set("已启用" if self.cookies_path else "未找到(匿名)")
@@ -383,6 +466,14 @@ class App:
 
 
 def main():
+    # Windows 任务栏分组：用本程序图标而非 pythonw 默认图标
+    if sys.platform.startswith("win"):
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                "com.ttao.bilidownloader.app.1")
+        except Exception:
+            pass
     root = tk.Tk()
     App(root)
     root.mainloop()
