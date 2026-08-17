@@ -102,11 +102,11 @@ git push -u origin main
 
 | 现象 | 原因 | 解决 |
 |---|---|---|
-| `failed to push some refs` | 远程有本地没有的提交（README 等） | 先执行第 3 步 `git pull`，再 `git push` |
+| `failed to push some refs` | **最常见：本地分支叫 `master`、远程默认是 `main`，两者不一致**；或远程有本地没有的提交 | 先统一分支名：`git branch -m master main`，再 `git push -u origin main`；若仍被拒，先 `git pull origin main --allow-unrelated-histories` 再 push |
 | 推送时密码错误 / 401 | 用了登录密码而非 PAT | 用 PAT；若已缓存错误凭据，Windows 凭据管理器删掉 `git:https://github.com` 再试 |
-| `src refspec main does not match` | 本地分支叫 `master` | 命令里 `main` 全换成 `master` |
+| `src refspec main does not match` | 本地没有名为 `main` 的分支（本地是 `master`） | 先 `git branch -m master main` 改名，再 `git push -u origin main` |
 | 想传 exe 给用户下载 | exe 29MB 且每次打包会变，不适合进 git | 用 GitHub **Releases** 上传 `dist/bili_downloader.exe`，或用本机复制 |
-| 误 add 了视频想撤回 | 还没 commit | `git reset` 撤回暂存，确认 `.gitignore` 含 `下载/` 后重来 |
+| 误 add 了视频/工具目录想撤回 | 还没 commit | `git reset` 撤回暂存，确认 `.gitignore` 含 `下载/` 和 `.workbuddy/` 后重来 |
 
 ---
 

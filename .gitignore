@@ -26,4 +26,7 @@ Thumbs.db
 *.mkv
 *.flv
 
+# ---- WorkBuddy internal data (do NOT upload) ----
+.workbuddy/
+
 # NOTE: source (.py/.pyw), assets/, *.bat, *.md, requirements.txt are tracked.
