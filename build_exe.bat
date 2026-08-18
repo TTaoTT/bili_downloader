@@ -32,7 +32,10 @@ py -3.11 -m pip install --upgrade pip
 py -3.11 -m pip install pyinstaller "yt-dlp>=2024.1.0" pystray
 
 echo [2/3] Building single-file executable (takes ~1 min) ...
-py -3.11 -m PyInstaller --noconfirm --onefile --windowed --name bili_downloader --icon assets/icon.ico --add-data assets;assets --collect-all yt_dlp --collect-all pystray bili_gui.pyw
+REM 清理可能残留的只读 .spec / build 目录，避免 PyInstaller 改写被拒
+if exist bili_downloader.spec del /F /Q bili_downloader.spec >nul 2>nul
+if exist build rmdir /S /Q build >nul 2>nul
+py -3.11 -m PyInstaller --noconfirm --onefile --windowed --name bili_downloader --icon assets/icon.ico --splash assets/splash.png --add-data assets;assets --collect-all yt_dlp --collect-all pystray bili_gui.pyw
 if errorlevel 1 (
     echo [ERR] Build failed. See output above.
     pause

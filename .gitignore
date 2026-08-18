@@ -11,6 +11,8 @@ __pycache__/
 
 # ---- App runtime files (user-specific, may contain cookies) ----
 cookies.txt
+download_history.json
+config.json
 downloads/
 *.part
 *.zip.part
