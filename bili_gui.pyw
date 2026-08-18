@@ -69,7 +69,6 @@ class App:
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         self._refresh_status()
         self._pump()
-        threading.Thread(target=self._bg_check_updates, daemon=True).start()
 
     # ---------------- UI ----------------
     def _build_ui(self):
@@ -110,7 +109,12 @@ class App:
         self.cookie_var = tk.StringVar()
         self.ffmpeg_var = tk.StringVar()
         self.app_ver_var = tk.StringVar(value=f"程序 v{APP_VERSION}")
-        self.ytdlp_ver_var = tk.StringVar(value="yt-dlp: 检测中…")
+        try:
+            _ytdlp_cur = self.downloader.yt_dlp_version()
+        except Exception:
+            _ytdlp_cur = None
+        self.ytdlp_ver_var = tk.StringVar(
+            value=f"yt-dlp: {_ytdlp_cur or '?'}（点「更新 yt-dlp」可升级）")
         # 第一行：版本 / 状态信息
         info = ttk.Frame(status)
         info.pack(fill="x")
@@ -555,27 +559,6 @@ class App:
 
         threading.Thread(target=work, daemon=True).start()
 
-    def _bg_check_updates(self):
-        """启动时后台检查 yt-dlp 最新版本与程序更新，更新状态栏/提示（不阻塞 UI）。"""
-        try:
-            cur, latest, has = self.downloader.ytdlp_update_available()
-            if has is True:
-                self.root.after(0, lambda: self.ytdlp_ver_var.set(
-                    f"yt-dlp: {cur} → 有更新 {latest}"))
-                self.root.after(0, lambda: self.update_btn.config(
-                    text=f"更新 yt-dlp ({latest})"))
-            elif has is False:
-                self.root.after(0, lambda: self.ytdlp_ver_var.set(
-                    f"yt-dlp: {cur} ✓最新"))
-            else:
-                self.root.after(0, lambda: self.ytdlp_ver_var.set(
-                    f"yt-dlp: {cur or '?'}（无法检查更新）"))
-            tag, url = self.downloader.check_app_update()
-            if tag and self._app_has_update(tag):
-                self.root.after(0, lambda: self._notify_app_update(tag, url))
-        except Exception:
-            pass
-
     @staticmethod
     def _app_has_update(latest_tag):
         """简单版本比较：去掉 v 前缀后字符串不同即视为有更新。"""
@@ -595,19 +578,46 @@ class App:
         if self.app_update_btn["state"] == "disabled":
             return
         self.app_update_btn.config(state="disabled")
-        self._log("正在检查程序更新 ...", "info")
+        self._log("正在检查更新（程序版本 + yt-dlp）...", "info")
 
         def work():
+            # 1) 程序版本：以 GitHub 最新 Release 标签为准
             try:
                 tag, url = self.downloader.check_app_update()
                 if not tag:
                     self.root.after(0, lambda: messagebox.showinfo(
-                        "程序更新", "检查失败，或未发布任何 release（GitHub 暂无可用版本）。"))
+                        "程序更新",
+                        "无法确定最新版本：GitHub 仓库尚未发布任何 Release。\n\n"
+                        "判定依据：程序以 GitHub 的「Released 发布标签」（如 v1.0.0）为准，"
+                        "而不是普通的代码提交（commit / push）。\n\n"
+                        "做法：到仓库创建一个 Release（标签建议与程序内 APP_VERSION 一致）；"
+                        "以后发布新版 exe 时，同步修改 APP_VERSION 并重新打包即可。"))
                 elif self._app_has_update(tag):
                     self.root.after(0, lambda: self._notify_app_update(tag, url))
                 else:
                     self.root.after(0, lambda: messagebox.showinfo(
-                        "程序更新", f"已是最新版本：v{APP_VERSION}"))
+                        "程序更新",
+                        f"已是最新版本：v{APP_VERSION}\n\n"
+                        f"（GitHub 最新 Release：{tag}）"))
+            except Exception as e:
+                self.root.after(0, lambda: messagebox.showwarning(
+                    "程序更新", f"检查失败：{e}"))
+            # 2) yt-dlp 最新版本（手动触发，不自动）
+            try:
+                cur, latest, has = self.downloader.ytdlp_update_available()
+                if has is True:
+                    self.root.after(0, lambda: self.ytdlp_ver_var.set(
+                        f"yt-dlp: {cur} → 有更新 {latest}"))
+                    self.root.after(0, lambda: self.update_btn.config(
+                        text=f"更新 yt-dlp ({latest})"))
+                elif has is False:
+                    self.root.after(0, lambda: self.ytdlp_ver_var.set(
+                        f"yt-dlp: {cur} ✓最新"))
+                else:
+                    self.root.after(0, lambda: self.ytdlp_ver_var.set(
+                        f"yt-dlp: {cur or '?'}（点按钮可更新）"))
+            except Exception:
+                pass
             finally:
                 self.root.after(0, lambda: self.app_update_btn.config(state="normal"))
 
