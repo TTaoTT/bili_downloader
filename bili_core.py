@@ -589,21 +589,23 @@ class BiliDownloader:
         def hook(d):
             if self._should_stop():
                 raise StopDownload("用户取消")
-            # 暂停：在进度回调处阻塞，直到继续或停止（实现「暂停/继续」）
+            # 暂停：在进度回调处「阻塞挂起」当前下载，保持连接；点「继续」后从此处继续。
+            # 这是比「抛异常中断 + 续传重下」更可靠的做法——
+            # 抛异常会被 yt-dlp 底层（http.py 的 except: close_stream(); raise）吞掉并把连接断开，
+            # 导致下载被误判为完成/需重下，表现就是「暂停=结束」。
             if self._paused:
-                first = False
                 with self._pause_lock:
                     if not self._pause_reported:
                         self._pause_reported = True
-                        first = True
-                        self._log("  ⏸ 已暂停（当前分P下载暂停，点「继续」恢复）", "info")
-                # 阻塞：每 0.3s 检查一次，避免忙等；停止信号也能立即解除
-                while self._paused and not self._stop:
+                        self._log("  ⏸ 已暂停（下载已挂起，点「继续」从当前位置恢复）", "info")
+                # 阻塞：每 0.3s 检查一次「继续」或「停止」信号，避免忙等；
+                # 同时让底层 socket 在短暂停顿时保持连接存活。
+                while self._paused and not self._should_stop():
                     time.sleep(0.3)
                 with self._pause_lock:
-                    if first:
+                    if self._pause_reported:
                         self._pause_reported = False
-                        self._log("  ▶ 已继续", "info")
+                        self._log("  ▶ 已继续，从当前位置继续下载。", "info")
                 if self._should_stop():
                     raise StopDownload("用户取消")
             if self._on_progress:
@@ -905,11 +907,18 @@ class BiliDownloader:
 
         opts["progress_hooks"] = [self._make_hook(idx, total)]
 
-        # 限流/403 类错误自动退避重试（其他错误直接失败）
+        # 限流/403 类错误自动退避重试
         RETRY_KEYS = ("403", "429", "HTTP Error", "rate limit", "Rate Limit",
-                      "Too Many Requests", "请求过于频繁", "频控", "Please try again later")
+                      "Too Many Requests", "请求过于频繁", "频控", "Please try again later",
+                      # 暂停恢复时底层连接可能已断开，这些传输层错误应自动重试（yt-dlp 会从已下部分续传）
+                      "Connection reset", "Connection aborted", "Connection broken",
+                      "Remote end closed", "RemoteDisconnected", "Broken pipe",
+                      "IncompleteRead", "ConnectionResetError", "ConnectionError",
+                      "reset by peer", "Connection timed out", "socket")
         max_retry = 3
-        for attempt in range(1, max_retry + 1):
+        attempt = 0
+        while attempt < max_retry:
+            attempt += 1
             try:
                 with YoutubeDL(opts) as ydl:
                     ydl.download([resolved_url])
@@ -928,7 +937,7 @@ class BiliDownloader:
                 retryable = any(k in emsg for k in RETRY_KEYS)
                 if retryable and attempt < max_retry and not self._should_stop():
                     wait = 2 ** attempt
-                    self._log(f"  [限流/403] 第 {attempt}/{max_retry} 次失败，{wait}s 后重试...",
+                    self._log(f"  [限流/连接断开] 第 {attempt}/{max_retry} 次失败，{wait}s 后自动重试（续传）...",
                               "warn")
                     time.sleep(wait)
                     continue

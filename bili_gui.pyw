@@ -46,8 +46,8 @@ class App:
     def __init__(self, root):
         self.root = root
         self.root.title("视频下载器")
-        self.root.geometry("860x680")
-        self.root.minsize(720, 560)
+        self.root.geometry("920x720")
+        self.root.minsize(760, 600)
 
         self.downloader = BiliDownloader()
         self.worker = None
@@ -94,10 +94,10 @@ class App:
         except Exception:
             pass
         ttk.Label(header, text="视频下载器",
-                  font=("Microsoft YaHei", 15, "bold"),
+                  font=("Microsoft YaHei", 16, "bold"),
                   foreground="#FB7299").pack(side="left")
         ttk.Label(header, text="B站 · 抖音 · 小红书 等多平台视频下载",
-                  font=("Microsoft YaHei", 9),
+                  font=("Microsoft YaHei", 10),
                   foreground="#8a919f").pack(side="left", padx=(8, 0))
 
         # 标题分隔线
@@ -382,7 +382,7 @@ class App:
             accent, accent_text, success = "#FB7299", "#ffffff", "#4ecb71"
         else:
             try:
-                style.theme_use("vista")   # 还原 Windows 原生外观
+                style.theme_use("clam")    # 浅色也使用 clam，保证自定义按钮颜色/文字映射被正确渲染
             except Exception:
                 try:
                     style.theme_use("default")
@@ -390,25 +390,34 @@ class App:
                     pass
             bg, surface, field = "#f5f6f8", "#ffffff", "#ffffff"
             fg, muted, border = "#1f2329", "#8a919f", "#e3e5e7"
-            accent, accent_text, success = "#FB7299", "#ffffff", "#1a7f37"
+            accent, accent_text, success = "#FB7299", "#5a001a", "#1a7f37"
 
-        # 容器 / 文本
-        style.configure(".", background=bg, foreground=fg)
+        # 容器 / 文本（全局默认字体放大到 10，解决整体偏小）
+        style.configure(".", background=bg, foreground=fg, font=("Microsoft YaHei", 10))
         for opt in ("TFrame", "TLabel", "TLabelFrame", "TLabelFrame.Label",
                     "TCheckbutton", "TRadiobutton"):
-            style.configure(opt, background=bg, foreground=fg)
+            style.configure(opt, background=bg, foreground=fg, font=("Microsoft YaHei", 10))
         # 输入框（含下拉框）
-        style.configure("TEntry", fieldbackground=field, foreground=fg, bordercolor=border)
+        style.configure("TEntry", fieldbackground=field, foreground=fg, bordercolor=border,
+                        font=("Microsoft YaHei", 10))
         style.configure("TCombobox", fieldbackground=field, foreground=fg,
                         selectbackground=accent, selectforeground=accent_text,
-                        background=field, bordercolor=border)
-        style.configure("TSpinbox", fieldbackground=field, foreground=fg, bordercolor=border)
+                        background=field, bordercolor=border, font=("Microsoft YaHei", 10))
+        style.configure("TSpinbox", fieldbackground=field, foreground=fg, bordercolor=border,
+                        font=("Microsoft YaHei", 10))
         # 普通按钮
-        style.configure("TButton", background=surface, foreground=fg, bordercolor=border)
+        style.configure("TButton", background=surface, foreground=fg, bordercolor=border,
+                        font=("Microsoft YaHei", 10))
         style.map("TButton", background=[("active", field), ("disabled", bg)])
-        # 主操作按钮配色（在 _build_ui 已注册布局/字体）
+        # 主操作按钮配色（字体/内边距必须在此显式声明，否则 theme_use 重置后会丢失）
         style.configure("Accent.TButton", background=accent, foreground=accent_text,
-                        bordercolor=accent)
+                        bordercolor=accent, font=("Microsoft YaHei", 12, "bold"),
+                        padding=(18, 8))
+        style.map("Accent.TButton",
+                  foreground=[("disabled", accent_text), ("active", accent_text),
+                              ("pressed", accent_text), ("!disabled", accent_text)],
+                  background=[("active", "#fc8bab"), ("disabled", "#f3b9c9"),
+                              ("pressed", "#f85785"), ("!disabled", accent)])
         # 进度条（品牌粉）
         style.configure("Accent.Horizontal.TProgressbar",
                         troughcolor=border, background=accent, borderwidth=0)
@@ -422,7 +431,8 @@ class App:
                     tw.configure(bg=field, fg=fg, insertbackground=fg,
                                 selectbackground=accent, selectforeground=accent_text,
                                 relief="flat", borderwidth=1,
-                                highlightbackground=border, highlightcolor=accent)
+                                highlightbackground=border, highlightcolor=accent,
+                                font=("Microsoft YaHei", 10))
                 except Exception:
                     pass
         if hasattr(self, "log"):
@@ -824,6 +834,7 @@ class App:
             self.downloader.request_resume()
             self.paused = False
             self.pause_btn.config(text="暂停")
+            self.status_var.set("继续下载中…")
 
     # ---------------- 回调（来自下载线程）----------------
     def _log(self, msg, level="info"):
@@ -906,9 +917,12 @@ def main():
         try:
             import ctypes
             try:
-                ctypes.windll.shcore.SetProcessDpiAwareness(1)  # PROCESS_SYSTEM_DPI_AWARE
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
             except Exception:
-                ctypes.windll.user32.SetProcessDPIAware()
+                try:
+                    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+                except Exception:
+                    ctypes.windll.user32.SetProcessDPIAware()
         except Exception:
             pass
         # Windows 任务栏分组：用本程序图标而非 pythonw 默认图标
